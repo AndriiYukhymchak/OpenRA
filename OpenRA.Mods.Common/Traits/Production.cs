@@ -98,7 +98,20 @@ namespace OpenRA.Mods.Common.Traits
 
 				var newUnit = self.World.CreateActor(producee.Name, td);
 
-				var move = newUnit.TraitOrDefault<IMove>();
+				var autoTargetProduction = self.Trait<AutoTargetProducer>();
+
+				if (autoTargetProduction != null && !autoTargetProduction.IsTraitDisabled && autoTargetProduction.Stance != null)
+				{
+					var autoTarget = newUnit.TraitOrDefault<AutoTarget>();
+					if (autoTarget != null && (autoTargetProduction.Info.ChangeSpecialStance || autoTarget.Info.InitialStance == AutoTargetInfo.DefaultStance))
+					{
+						autoTarget.PredictedStance = autoTargetProduction.Stance.Value;
+						autoTarget.SetStance(newUnit, autoTargetProduction.Stance.Value);
+					}
+				}
+
+				var move = newUnit.TraitOrDefault<IMove>();				
+
 				if (move != null)
 				{
 					if (exitinfo.MoveIntoWorld)

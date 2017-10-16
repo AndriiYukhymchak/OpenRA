@@ -22,6 +22,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		int selectionHash;
 		TraitPair<AutoTarget>[] actorStances = { };
+		TraitPair<AutoTargetProducer>[] buildingStances = { };
 
 		[ObjectCreator.UseCtor]
 		public StanceSelectorLogic(Widget widget, World world)
@@ -51,11 +52,11 @@ namespace OpenRA.Mods.Common.Widgets
 			var icon = button.Get<ImageWidget>("ICON");
 			icon.GetImageName = () => button.IsDisabled() ? icon.ImageName + "-disabled" :
 				button.IsHighlighted() ? icon.ImageName + "-active" : icon.ImageName;
-
 			button.GetKey = getHotkey;
-			button.IsDisabled = () => { UpdateStateIfNecessary(); return !actorStances.Any(); };
+			button.IsDisabled = () => { UpdateStateIfNecessary(); return !actorStances.Any() && !buildingStances.Any(); };
 			button.IsHighlighted = () => actorStances.Any(
-				at => !at.Trait.IsTraitDisabled && at.Trait.PredictedStance == stance);
+				at => !at.Trait.IsTraitDisabled && at.Trait.PredictedStance == stance) || buildingStances.Any(
+				at => !at.Trait.IsTraitDisabled && at.Trait.Stance == stance);
 			button.OnClick = () => SetSelectionStance(stance);
 		}
 
@@ -71,6 +72,18 @@ namespace OpenRA.Mods.Common.Widgets
 					.Select(at => new TraitPair<AutoTarget>(a, at)))
 				.ToArray();
 
+			// we want to operate with buildings ONLY if units are not selected
+			if (!actorStances.Any())
+				buildingStances = world.Selection.Actors
+					.Where(a => a.Owner == world.LocalPlayer && a.IsInWorld)
+					.SelectMany(a => a.TraitsImplementing<AutoTargetProducer>()
+						.Select(at => new TraitPair<AutoTargetProducer>(a, at)))
+					.ToArray();
+
+			// clear buildings only when needed
+			else if (buildingStances.Any())
+				buildingStances = new TraitPair<AutoTargetProducer>[] { };
+
 			selectionHash = world.Selection.Hash;
 		}
 
@@ -82,6 +95,13 @@ namespace OpenRA.Mods.Common.Widgets
 					at.Trait.PredictedStance = stance;
 
 				world.IssueOrder(new Order("SetUnitStance", at.Actor, false) { ExtraData = (uint)stance });
+			}
+
+			var clearBuildingStance = buildingStances.All(x => x.Trait.Stance == stance);
+
+			foreach (var at in buildingStances)
+			{
+				world.IssueOrder(new Order("SetBuildingProductionStance", at.Actor, false) { ExtraData = clearBuildingStance ? AutoTargetProducer.CancelStanceSetting : (uint)stance });
 			}
 		}
 	}

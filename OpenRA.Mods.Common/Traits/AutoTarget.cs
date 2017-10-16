@@ -19,6 +19,8 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("The actor will automatically engage the enemy when it is in range.")]
 	public class AutoTargetInfo : ConditionalTraitInfo, IRulesetLoaded, Requires<AttackBaseInfo>, UsesInit<StanceInit>
 	{
+		public static readonly UnitStance DefaultStance = UnitStance.Defend;
+
 		[Desc("It will try to hunt down the enemy if it is not set to defend.")]
 		public readonly bool AllowMovement = true;
 
@@ -30,7 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly UnitStance InitialStanceAI = UnitStance.AttackAnything;
 
 		[Desc("Possible values are HoldFire, ReturnFire, Defend and AttackAnything. Used for human players.")]
-		public readonly UnitStance InitialStance = UnitStance.Defend;
+		public readonly UnitStance InitialStance = DefaultStance;
 
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while in the HoldFire stance.")]
